@@ -3,12 +3,15 @@ import pygame as pg
 
 
 class Char:
-    def __init__(self, x, y, speed, race):
+    def __init__(self, x, y, cha, intl,  speed, race):
         self.x = x
         self.y = y
         self.speed = speed
         self.race = race
-        self.inventory = {}
+        self.inventory = {"food": 100}
+        self.cha = cha  # charsima
+        self.fil = 100  # feeling
+        self.intl = intl  # intelligence
         self._colors = {
             "human": [(255, 204, 153), (102, 51, 0), (255, 180, 0)],
         }
@@ -23,16 +26,30 @@ class Char:
         return self.shapes[int(self.current_shape)]
 
     def find_closest_resource(self, resources):
+        priority_type = None
+        if self.intl > 0.5 and self.inventory.get("food", 0) < 10:
+            # prioritize food if food is lower than 10
+            priority_type = "food"
         min_distance = float("inf")
         for resource in resources:
             distance = ((self.x - resource.x) ** 2 +
                         (self.y - resource.y) ** 2) ** 0.5
-            if distance < min_distance:
+            if self.closest:
+                closest_type = self.closest.type
+            else:
+                closest_type = ""
+            if (distance < min_distance or (resource.type == priority_type)) and not (closest_type == priority_type):
                 min_distance = distance
-                self.closest = resource
+                if (self.intl < 0.6):
+                    # just dumb and sometimes don't see every resources
+                    skip = random.randint(0, 1)
+                    if skip > 0.2:
+                        self.closest = resource
+                else:
+                    self.closest = resource
 
     def move_to_closest_resource(self, resources):
-        if self.closest == None:
+        if self.closest == None or self.closest not in resources:
             self.find_closest_resource(resources)
         if self.closest:
             dx = self.closest.x - self.x
@@ -45,6 +62,11 @@ class Char:
         if length != 0:
             dx /= length
             dy /= length
+            self.inventory["food"] -= 0.1
+            self.speed -= 0.001
+        if self.speed < 0.1 and self.inventory["food"] > 0.1:
+            self.inventory["food"] -= 0.1
+            self.speed = 2
         move_length = ((dx * self.speed) ** 2 + (dy * self.speed) ** 2) ** 0.5
         if move_length > length:
             self.x = self.closest.x
@@ -55,19 +77,19 @@ class Char:
 
     def gather(self, resource):
         # if ressource is at 10 px of the char, gather it
-        if ((self.x - resource.x) ** 2 + (self.y - resource.y) ** 2) ** 0.5 < 10:
-            if resource.type not in self.inventory:
-                self.inventory[resource.type] = 0
-            gathered = resource.gather(10)
-            if gathered == 0:
-                self.closest = None
-            else:
-                self.speed *= 1.01
-            self.inventory[resource.type] += gathered
+        if resource:
+            if ((self.x - resource.x) ** 2 + (self.y - resource.y) ** 2) ** 0.5 < 10:
+                if resource.type not in self.inventory:
+                    self.inventory[resource.type] = 0
+                gathered = resource.gather(10)
+                if gathered == 0:
+                    self.closest = None
+                else:
+                    self.speed *= 1.001
+                self.inventory[resource.type] += gathered
 
     def survive(self):
-        if "food" in self.inventory:
-            self.inventory["food"] -= 1
+        if "food" in self.inventory and self.inventory["food"] > 0:
             return True
         else:
             return False
