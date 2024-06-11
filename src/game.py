@@ -66,7 +66,7 @@ class Game:
             self.screen.blit(self.transparent_surface, (0, 0))
             self.display()
             for char in self.chars:
-                char.move_to_closest_resource(self.resources)
+                char.move_to_closest_resource(self.resources, self.chars)
                 char.gather(char.closest)
                 if char.survive() == False:
                     self.chars.remove(char)

@@ -48,13 +48,43 @@ class Char:
                 else:
                     self.closest = resource
 
-    def move_to_closest_resource(self, resources):
+    def get_neighbors(self, chars):
+        neighbors = []
+        distance = 50
+        for char in chars:
+            if char != self:
+                if ((self.x - char.x) ** 2 + (self.y - char.y) ** 2) ** 0.5 < distance:
+                    neighbors.append(char)
+        return neighbors
+
+    def normalize(self, dx, dy):
+        length = (dx ** 2 + dy ** 2) ** 0.5
+        if length != 0:
+            dx /= length
+            dy /= length
+        return dx, dy
+
+    def move_to_closest_resource(self, resources, chars):
+        dx = 0
+        dy = 0
+        neighbors = self.get_neighbors(chars)
+        if len(neighbors) > 2 and self.closest:
+            # change closest resource if there are too many neighbors
+            resources_copy = resources.copy()
+            resources_copy.remove(self.closest)
+            self.find_closest_resource(resources_copy)
         if self.closest == None or self.closest not in resources:
             self.find_closest_resource(resources)
         if self.closest:
-            dx = self.closest.x - self.x
-            dy = self.closest.y - self.y
-            self.move(dx, dy)
+            dx = (self.closest.x - self.x)
+            dy = (self.closest.y - self.y)
+            dx, dy = self.normalize(dx, dy)
+        if neighbors:
+            for neighbor in neighbors:
+                dx += (self.x - neighbor.x)
+                dy += (self.y - neighbor.y)
+            dx, dy = self.normalize(dx, dy)
+        self.move(dx, dy)
 
     def move(self, dx, dy):
         # Normalize the vector to length of 1
@@ -63,17 +93,18 @@ class Char:
             dx /= length
             dy /= length
             self.inventory["food"] -= 0.1
-            self.speed -= 0.001
+            self.speed -= 0.01
         if self.speed < 0.1 and self.inventory["food"] > 0.1:
             self.inventory["food"] -= 0.1
             self.speed = 2
-        move_length = ((dx * self.speed) ** 2 + (dy * self.speed) ** 2) ** 0.5
-        if move_length > length:
-            self.x = self.closest.x
-            self.y = self.closest.y
-        else:
-            self.x = self.x + dx * self.speed
-            self.y = self.y + dy * self.speed
+        if self.speed > 2:
+            self.speed = 2
+        # if next dx * self.speed makes us skip the resource, slow down
+        if self.closest:
+            if ((self.x - self.closest.x) ** 2 + (self.y - self.closest.y) ** 2) ** 0.5 < 10:
+                self.speed = 1
+        self.x = self.x + dx * self.speed
+        self.y = self.y + dy * self.speed
 
     def gather(self, resource):
         # if ressource is at 10 px of the char, gather it
