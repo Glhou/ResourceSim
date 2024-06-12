@@ -20,6 +20,7 @@ class Char:
                        pg.Rect(self.x, self.y, 10, 8)]
         self.current_shape = 0
         self.closest = None
+        self.circle = None
 
     def get_shape(self):
         self.current_shape = (self.current_shape + 1/30) % len(self.shapes)
@@ -52,7 +53,7 @@ class Char:
         neighbors = []
         distance = 50
         for char in chars:
-            if char != self:
+            if char != self or self.circle != char.circle:
                 if ((self.x - char.x) ** 2 + (self.y - char.y) ** 2) ** 0.5 < distance:
                     neighbors.append(char)
         return neighbors
@@ -68,7 +69,7 @@ class Char:
         dx = 0
         dy = 0
         neighbors = self.get_neighbors(chars)
-        if len(neighbors) > 2 and self.closest:
+        if len(neighbors) >= 2 and self.closest:
             # change closest resource if there are too many neighbors
             resources_copy = resources.copy()
             resources_copy.remove(self.closest)
